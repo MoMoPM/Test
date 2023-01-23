@@ -12,7 +12,8 @@ class Comments extends Model
 
     protected $fillable = [
         'email',
-        'comment'
+        'comment',
+        'movie_id'
     ];
 
     public function movies()

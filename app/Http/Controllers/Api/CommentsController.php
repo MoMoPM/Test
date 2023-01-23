@@ -53,12 +53,23 @@ class CommentsController extends Controller
         if($validate->fails()){
             return response()->json($validate->errors(), 422);
         }
-        
-        return response()->json([
-            'status' => 200,
-            'message' => "Save Successfully!",
-            'data' => $request->all(),
-        ], 200);
+        try {
+            Comments::create($request->all());
+            return response()->json([
+                'status' => 200,
+                'message' => "Save Successfully!",
+                'data' => $request->all(),
+            ], 200);
+        }
+        catch (\Exception $e) {
+            return response()->json([
+                'status' => 422,
+                'errors' => [
+                    'messages' => ['Fail'],
+                ]
+            ]);
+        }
+
     }
 
     /**

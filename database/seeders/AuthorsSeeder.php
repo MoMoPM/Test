@@ -4,7 +4,6 @@ namespace Database\Seeders;
 use App\Models\Authors;
 use Illuminate\Database\Seeder;
 use DB;
-use App\State;
 
 class AuthorsSeeder extends Seeder
 {
