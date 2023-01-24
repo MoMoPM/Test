@@ -16,7 +16,6 @@ use Illuminate\Http\JsonResponse;
 use function response;
 use Illuminate\Support\Facades\File;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Arr;
 
 class MoviesController extends Controller
 {
