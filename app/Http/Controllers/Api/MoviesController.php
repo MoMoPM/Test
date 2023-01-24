@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use function response;
 use Illuminate\Support\Facades\File;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Arr;
 
 class MoviesController extends Controller
 {
@@ -24,7 +26,7 @@ class MoviesController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function index()
-    {
+    {   
         $movies = Movies::with('genres')
                 ->with('authors')
                 ->with('tags')
@@ -49,14 +51,6 @@ class MoviesController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
-     * @bodyParam store_id int required title. Example: 'Harry Potter'
-     * @bodyParam store_id int required summary. Example: 'This is a awesome movie'
-     * @bodyParam status string Status. Example: provisional
-     * @bodyParam start_date_option1 date Reservation start_date_option1
-     * @bodyParam start_date_option2 date Reservation start_date_option2
-     * @bodyParam start_date date Reservation start_date
-     * @bodyParam customer_comment string Reservation customer_comment
-     * @bodyParam memo string Reservation memo
      * @bodyParam rating int Example: 4
      * @bodyParam genres int[] Example: [2]
      * @bodyParam authors int[] Example: [2]
@@ -135,16 +129,40 @@ class MoviesController extends Controller
     public function show(string $id): JsonResponse
     {
         try {
+            // retrieve single Movie data and its comments
             $movies = Movies::with('genres')
                             ->with('authors')
                             ->with('tags')
                             ->where('id',$id)->first();
             $comment = Comments::all()->where('movie_id', $id);
+
+            /***
+                retrieve authorsIds, genresIds, tagsIds, rating from singleMovie collection
+                retrieve relatedMovies via (Related :authors, genres, tag, rating, limi - 7, orderDESC)
+            ***/
+            $authorsIds = $movies->authors->pluck('id')->toArray();
+            $genresIds = $movies->genres->pluck('id')->toArray();
+            $tagsIds = $movies->tags->pluck('id')->toArray();
+            $rating =  $movies->rating;
+            $relatedMovies = Movies::orwhereHas('authors',function(Builder $query) use ($authorsIds) {
+                $query->WhereIn( 'authors_id', $authorsIds);
+            })
+            ->orwhereHas('genres', function($query)  use ($genresIds) {
+                $query->WhereIn('genres_id', $genresIds);
+            })
+            ->orwhereHas('tags', function($query)  use ($tagsIds) {
+                $query->WhereIn('tags_id', $tagsIds);
+            })
+            ->where('movies.rating', '<=', $rating)
+            ->limit(7)
+            ->orderByDesc("id")
+            ->get()->except($id);
             
             return response()->json([
                 'status' => 200,
                 'data' => $movies,
                 'comments' => $comment,
+                'relatedMovies' => $relatedMovies
             ]);
         }
         catch (\Exception $e) {
@@ -174,14 +192,6 @@ class MoviesController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @param  \App\Models\Movies  $movies
      * @return \Illuminate\Http\Response
-     * @bodyParam store_id int required title. Example: 'Harry Potter'
-     * @bodyParam store_id int required summary. Example: 'This is a awesome movie'
-     * @bodyParam status string Status. Example: provisional
-     * @bodyParam start_date_option1 date Reservation start_date_option1
-     * @bodyParam start_date_option2 date Reservation start_date_option2
-     * @bodyParam start_date date Reservation start_date
-     * @bodyParam customer_comment string Reservation customer_comment
-     * @bodyParam memo string Reservation memo
      * @bodyParam rating int Example: 4
      * @bodyParam genres int[] Example: [2]
      * @bodyParam authors int[] Example: [2]
